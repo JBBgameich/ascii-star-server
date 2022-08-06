@@ -37,23 +37,20 @@ fn search(q: String) -> Option<JsonValue> {
     let search = q.to_lowercase();
     let search_words: Vec<_> = search
         .split_whitespace()
-        .map(|word| word.as_ref())
         .collect();
 
-    for entry in read_dir(crate::configuration::SONG_PATH).ok()? {
-        if let Ok(entry) = entry {
-            if let Some(header) = get_matching_header(&entry.path(), &search_words) {
-                if let Ok(name) = entry.file_name().into_string() {
-                    let path: PathBuf = ["song", &name].iter().collect();
-                    results.push(
-                        json!({
-                            "path": path,
-                            "title": header.title,
-                            "artist": header.artist,
-                            "genre": header.genre
-                        })
-                    );
-                }
+    for entry in read_dir(crate::configuration::SONG_PATH).ok()?.flatten() {
+        if let Some(header) = get_matching_header(&entry.path(), &search_words) {
+            if let Ok(name) = entry.file_name().into_string() {
+                let path: PathBuf = ["song", &name].iter().collect();
+                results.push(
+                    json!({
+                        "path": path,
+                        "title": header.title,
+                        "artist": header.artist,
+                        "genre": header.genre
+                    })
+                );
             }
         }
     }
@@ -80,7 +77,7 @@ fn get_matching_header(path: &Path, search_words: &[&str]) -> Option<ultrastar_t
     if search_words
         .iter()
         .all(|word|
-            matches_header(&header, &*word)
+            matches_header(&header, *word)
         ) {
         Some(original_header)
     } else {
